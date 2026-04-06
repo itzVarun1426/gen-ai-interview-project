@@ -1,6 +1,7 @@
 import {PDFParse} from 'pdf-parse';
 import { generateInterviewReport } from '../services/ai.service.js';
 import interviewReportModel from '../models/interviewReport.model.js';
+import { get } from 'mongoose';
 
 
 async function generateInterviewReportController(req, res) {
@@ -54,4 +55,51 @@ async function generateInterviewReportController(req, res) {
     }
 }
 
-export default {generateInterviewReportController};
+async function getInterviewByIdController(req, res){
+    try{
+        const {interviewId} = req.params;
+        if(!interviewId){
+            return res.status(400).json({
+                message: "interview id is required"
+            });
+        }
+        const interviewReport = await interviewReportModel.findById(interviewId);
+
+        if(!interviewReport){
+            return res.status(404).json({
+                message: "interview report not found"
+            });
+
+        }
+        res.status(200).json({
+            message: "interview report found",
+            interviewReport
+        });
+    }
+    catch(err){
+        console.log("error in interview.api.js ",err)
+    }
+}
+
+async function getAllInterviewReportByUserId(req,res) {
+    try{
+        const user = req.decoded.id;
+        const reports = await interviewReportModel.find({user}).sort({createdAt: -1}).select("-resume -jobDescription -selfDescription -skillsGaps -behavioralQuestions -technicalQuestions -__v -preparationPlan");
+        if(!reports){
+            return res.status(404).json({
+                message: "interview reports not found"
+            });
+        }
+        res.status(200).json({
+            message: "interview reports found",
+            reports
+        });
+
+    }
+    catch(err){
+        console.log("error in interview.api.js ",err)
+    }
+}
+
+
+export default {generateInterviewReportController,getInterviewByIdController,getAllInterviewReportByUserId};

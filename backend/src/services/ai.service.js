@@ -41,6 +41,8 @@ const interviewReportSchema = z.object({
     }).strict()
   ).min(1).max(7),
 
+  title: z.string().describe("it representes one liner about the whole report to be showed to the user")
+
 }).strict();
 
 
@@ -227,7 +229,7 @@ STRICT RULES (FOLLOW EXACTLY):
    - question
    - intention
    - answer
-5. The "answer" MUST be DETAILED (minimum 3-4 lines)
+5. The "answer" MUST be DETAILED (minimum 2-3 lines)
 6. DO NOT leave answer empty or generic
 7. DO NOT shorten output
 
@@ -250,6 +252,7 @@ REQUIREMENTS:
 - EXACTLY 8 behavioral questions
 - Behavioral answers MUST follow STAR method:
   Situation → Task → Action → Result
+-title is a single liner short title for this report to be shown to user 
 
 FINAL OUTPUT FORMAT:
 
@@ -281,7 +284,8 @@ FINAL OUTPUT FORMAT:
       "focused_topic": string,
       "task": string[]
     }
-  ]
+  ],
+  "title": string
 }
 
 Candidate Resume:
