@@ -9,13 +9,11 @@ const Home = () => {
     const resumeInputFile = useRef();
 
     const {interviewLoading , handleGenerateInterviewReport,reports} = useInterview();
-    console.log("reports",reports)
+    const navigate = useNavigate()
 
     if(interviewLoading){
         return <main><h1>....Loading</h1></main>
     }
-
-    const navigate = useNavigate()
 
     const handleSubmit=async ()=>{
         try{
@@ -37,7 +35,7 @@ const Home = () => {
                 }
 
 
-            navigate(`/interview`);
+            navigate(`/interview/${data._id}`);
 
 
         }

@@ -49,22 +49,6 @@ export const useAuth = ()=>{
         }
     }
 
-    useEffect(() => {
-    const fetchUser = async () => {
-        try {
-            const data = await getMe();
-            console.log(data);
-            setUser(data?.user || null);
-        } catch (err) {
-            console.log("error fetching user", err);
-            setUser(null);
-        } finally {
-            setLoading(false); // 🔥 THIS WAS MISSING
-        }
-    };
-
-    fetchUser();
-}, []);
 
     return {user , loading , handleLogin,handleRegister,handleLogout}
 

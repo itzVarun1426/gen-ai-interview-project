@@ -12,9 +12,13 @@ const Interview = () => {
             console.log("Fetching ID:", interviewId)
             handleGetInterviewReportById(interviewId)
         }
-    }, [ interviewId])
+    }, [interviewId])
 
-    console.log("REPORT:", report)
+    useEffect(() => {
+        if (report) {
+            console.log("REPORT UPDATED:", report)
+        }
+    }, [report])
 
     if (interviewLoading) {
         return <h2 style={{ textAlign: "center" }}>Loading...</h2>

@@ -12,7 +12,7 @@ connectDB();
 //   jobDescription
 // });
 
-app.listen(process.env.PORT,()=>{
-    console.log("server running on port :",process.env.PORT)
+app.listen(process.env.PORT, () => {
+    console.log("server running on the port :", process.env.PORT)
 })
 

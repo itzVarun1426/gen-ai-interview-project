@@ -6,7 +6,7 @@ const genai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
 });
 
-// ✅ SCHEMA
+
 const interviewReportSchema = z.object({
   matchscore: z.number().min(0).max(100).int(),
 
@@ -46,20 +46,19 @@ const interviewReportSchema = z.object({
 }).strict();
 
 
-// 🔥 UNIVERSAL SAFE NORMALIZER
 function fixArray(arr, type) {
   if (!Array.isArray(arr)) return [];
 
   return arr
     .map((item, index) => {
 
-      // ❌ remove null / undefined
+      //  remove null / undefined
       if (!item) return null;
 
       // 🔹 STRING CASE
       if (typeof item === "string") {
 
-        // 🔥 TRY JSON PARSE FIRST (FIXED ORDER)
+        //  TRY JSON PARSE FIRST (FIXED ORDER)
         try {
           const parsedItem = JSON.parse(item);
 
@@ -76,7 +75,7 @@ function fixArray(arr, type) {
 
         } catch {
 
-          // 🔥 HANDLE "skill:React" ONLY IF NOT JSON
+          //  HANDLE "skill:React" ONLY IF NOT JSON
           if (type === "skill" && item.includes(":") && !item.includes("{")) {
             const [key, value] = item.split(":");
 
@@ -88,7 +87,7 @@ function fixArray(arr, type) {
             }
           }
 
-          // 🔥 QUESTION STRING → CONVERT TO OBJECT
+          //  QUESTION STRING → CONVERT TO OBJECT
           if (type === "question") {
             return {
               question: item,
@@ -114,7 +113,7 @@ function fixArray(arr, type) {
         }
       }
 
-      // 🔹 NUMBER CASE
+      //  NUMBER CASE
       if (typeof item === "number") {
         return {
           day: item,
@@ -123,10 +122,10 @@ function fixArray(arr, type) {
         };
       }
 
-      // 🔹 OBJECT CASE
+      //  OBJECT CASE
       if (typeof item === "object") {
 
-        // 🔥 CLEAN INVALID KEYS
+        //  CLEAN INVALID KEYS
         const cleanItem = {};
         for (let key in item) {
           if (key !== "null" && item[key] !== null && item[key] !== undefined) {
@@ -134,7 +133,7 @@ function fixArray(arr, type) {
           }
         }
 
-        // 🔹 QUESTION FIX
+        //  QUESTION FIX
         if (type === "question") {
           return {
             question:
@@ -154,7 +153,7 @@ function fixArray(arr, type) {
           };
         }
 
-        // 🔹 SKILL FIX
+        //  SKILL FIX
         if (type === "skill") {
           return {
             skill:
@@ -169,11 +168,11 @@ function fixArray(arr, type) {
           };
         }
 
-        // 🔹 PLAN FIX
+        //  PLAN FIX
         if (type === "plan") {
           let topic = cleanItem.focused_topic;
 
-          // 🔥 HANDLE STRINGIFIED JSON
+          // HANDLE STRINGIFIED JSON
           if (typeof topic === "string" && topic.includes('"task"')) {
             try {
               const cleaned = topic.trim().startsWith("{") ? topic : `{${topic}}`;
@@ -214,7 +213,6 @@ function fixArray(arr, type) {
 }
 
 
-// 🔥 MAIN FUNCTION
 async function generateInterviewReport({ resume, selfDescription, jobDescription }) {
   try {
     const prompt = `
@@ -299,7 +297,8 @@ ${jobDescription}
 `;
 
     const response = await genai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-2.5-flash-lite",
+      // model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -311,12 +310,12 @@ ${jobDescription}
       response.text.replace(/```json|```/g, "").trim()
     );
 
-    // 🔥 REMOVE EXTRA FIELDS
+
     delete parsed.feedbackSummary;
     delete parsed.strengths;
     delete parsed.areasForImprovement;
 
-    // 🔥 STRUCTURE FIX
+
     if (!Array.isArray(parsed.preparationPlan)) {
       if (parsed.preparationPlan && typeof parsed.preparationPlan === "object") {
         parsed.preparationPlan = [parsed.preparationPlan];
@@ -326,13 +325,13 @@ ${jobDescription}
     }
     // console.log(" DATA before fixing:", parsed);
 
-    // 🔥 APPLY FIXES
+ 
     parsed.technicalQuestions = fixArray(parsed.technicalQuestions, "question").slice(0, 10);
     parsed.behavioralQuestions = fixArray(parsed.behavioralQuestions, "question").slice(0, 10);
     parsed.skillsGaps = fixArray(parsed.skillsGaps, "skill");
     parsed.preparationPlan = fixArray(parsed.preparationPlan, "plan").slice(0, 7);
 
-    // 🔥 MATCH SCORE FIX
+
     if (!parsed.matchscore || typeof parsed.matchscore !== "number") {
       parsed.matchscore = 70;
     }
