@@ -28,6 +28,22 @@ router.get('/report/:interviewId',authMiddleware.authUser,interviewController.ge
  * @access private
  */
 router.get('/',authMiddleware.authUser,interviewController.getAllInterviewReportByUserId);
+router.delete('/:interviewId', authMiddleware.authUser, interviewController.deleteInterviewReportController);
+
+/**
+ * @route POST /api/interview/:interviewId/answer
+ * @description submit a single question answer for evaluation
+ * @access private
+ */
+router.post('/:interviewId/answer', authMiddleware.authUser, upload.single('audio'), interviewController.submitAnswerController);
+
+/**
+ * @route POST /api/interview/:interviewId/complete
+ * @description mark the interview as completed
+ * @access private
+ */
+router.post('/:interviewId/complete', authMiddleware.authUser, interviewController.completeInterviewController);
+
 
 
 export default router;

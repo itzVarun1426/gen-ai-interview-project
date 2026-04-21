@@ -1,0 +1,68 @@
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
+@layer base {
+  body {
+    @apply transition-colors duration-300 bg-surface-container-lowest text-on-surface antialiased;
+    font-family: 'Inter', sans-serif;
+  }
+
+  /* Dark mode base overrides */
+  .dark body {
+    @apply bg-slate-950 text-slate-100;
+  }
+
+  /* Custom Scrollbar for Dark Mode */
+  .dark ::-webkit-scrollbar {
+    width: 8px;
+  }
+  .dark ::-webkit-scrollbar-track {
+    background: theme('colors.slate.950');
+  }
+  .dark ::-webkit-scrollbar-thumb {
+    background: theme('colors.slate.800');
+    border-radius: 10px;
+  }
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: theme('colors.slate.700');
+  }
+}
+
+@layer components {
+  .font-space-grotesk {
+    font-family: 'Space Grotesk', sans-serif;
+  }
+
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+  }
+
+  .glass-card {
+    @apply bg-white border border-slate-100 shadow-soft backdrop-blur-md rounded-2xl;
+  }
+
+  .dark .glass-card {
+    @apply bg-slate-900 border-slate-800 shadow-none backdrop-blur-md;
+  }
+
+  .green-glow {
+    filter: drop-shadow(0 0 12px rgba(16, 185, 129, 0.4));
+  }
+
+  .text-glow {
+    @apply drop-shadow-[0_0_8px_rgba(16,185,129,0.3)];
+  }
+
+  .animate-pulse-green {
+    animation: pulse-green 3s infinite ease-in-out;
+  }
+}
+
+@keyframes pulse-green {
+  0%, 100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}

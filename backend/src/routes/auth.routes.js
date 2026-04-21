@@ -19,6 +19,13 @@ router.post("/register",authController.registerUser);
  */
 router.post("/login",authController.loginUser);
 
+/**
+ * @POST /api/auth/google
+ * @description login or register user via Google
+ * @access public
+ */
+router.post("/google",authController.googleAuth);
+
 
 /**
  * @POST /api/auth/logout

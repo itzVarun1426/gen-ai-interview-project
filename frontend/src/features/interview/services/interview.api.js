@@ -6,29 +6,26 @@ const api = axios.create({
 
 })
 
-const generateInterviewReport =async({selfDescription,jobDescription,resume})=>{
-    try{
+const generateInterviewReport = async ({ selfDescription, jobDescription, resume }) => {
+    try {
         const formData = new FormData();
-        formData.append("selfDescription",selfDescription);
-        formData.append("jobDescription",jobDescription);
-        formData.append("resume",resume);
+        formData.append("selfDescription", selfDescription || "");
+        formData.append("jobDescription", jobDescription || "");
 
-        const response = await api.post("/api/interview",formData,{
-            headers:{
-                "Content-Type":"multipart/form-data"
-            }
-        })
-        if(!response.data){
-            return res.status(404).json({
-                message:"generateInterviewReport failed",
-            })
+        if (resume && resume instanceof File) {
+            formData.append("resume", resume);
         }
-        console.log(response.data);
-        return response.data;
 
-    }
-    catch(err){
-        console.log("error in interview.api.js while generating interview report",err);
+        const response = await api.post("/api/interview", formData, {
+            headers: {
+                "Content-Type": "multipart/form-data"
+            }
+        });
+
+        return response.data;
+    } catch (err) {
+        console.error("error in interview.api.js while generating interview report", err);
+        throw err; // Propagate error for the context to handle
     }
 }
 
@@ -56,19 +53,67 @@ const getInterviewReportById = async (interviewId) => {
     }
 };
 
-const getAllInterviewReportByUserId=async()=>{
-    try{
+const getAllInterviewReportByUserId = async () => {
+    try {
         const response = await api.get("/api/interview");
-        if(!response.data){
-            return res.status(404).json({
-                message:"No reports yet",
-            })
+        if (!response.data || !response.data.reports) {
+            return [];
         }
-        return response.data;
+        return response.data.reports;
     }
-    catch(err){
-        console.log("error in interview.api.js while getting all interview reports",err);
+    catch (err) {
+        console.log("error in interview.api.js while getting all interview reports", err);
     }
 }
 
-export {generateInterviewReport,getInterviewReportById,getAllInterviewReportByUserId};
+const deleteInterviewReport = async (interviewId) => {
+    try {
+        const response = await api.delete(`/api/interview/${interviewId}`);
+        return response.data;
+    } catch (err) {
+        console.error("error in interview.api.js while deleting interview report", err);
+        throw err;
+    }
+}
+
+const submitAnswer = async (interviewId, { questionType, questionIndex, userAnswer, audioBlob }) => {
+    try {
+        const formData = new FormData();
+        formData.append("questionType", questionType);
+        formData.append("questionIndex", questionIndex);
+        formData.append("userAnswer", userAnswer || "");
+        
+        if (audioBlob) {
+            formData.append("audio", audioBlob, "answer.webm");
+        }
+
+        const response = await api.post(`/api/interview/${interviewId}/answer`, formData, {
+            headers: {
+                "Content-Type": "multipart/form-data"
+            }
+        });
+        return response.data;
+    } catch (err) {
+        console.error("error in interview.api.js while submitting answer", err);
+        throw err;
+    }
+}
+
+const completeInterview = async (interviewId) => {
+    try {
+        const response = await api.post(`/api/interview/${interviewId}/complete`);
+        return response.data;
+    } catch (err) {
+        console.error("error in interview.api.js while completing interview", err);
+        throw err;
+    }
+}
+
+export { 
+    generateInterviewReport, 
+    getInterviewReportById, 
+    getAllInterviewReportByUserId, 
+    deleteInterviewReport,
+    submitAnswer,
+    completeInterview
+};

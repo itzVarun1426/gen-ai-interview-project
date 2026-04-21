@@ -2,6 +2,9 @@ import userModel from "../models/user.model.js";
 import blacklistedTokenModel from "../models/blacklist.model.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { OAuth2Client } from "google-auth-library";
+
+const client = new OAuth2Client();
 
 const cookieOptions = {
     httpOnly: true,
@@ -161,9 +164,77 @@ const getCurrentUser = async (req, res) => {
     }
 };
 
+/**
+ * Google Auth
+ */
+const googleAuth = async (req, res) => {
+    try {
+        const { token } = req.body;
+        if (!token) {
+            return res.status(400).json({ message: "token is required" });
+        }
+
+        const ticket = await client.verifyIdToken({
+            idToken: token,
+            audience: process.env.GOOGLE_CLIENT_ID,
+        });
+
+        const payload = ticket.getPayload();
+        const { email, name } = payload;
+
+        let user = await userModel.findOne({ email });
+
+        if (!user) {
+            let username = name;
+            let usernameExists = await userModel.findOne({ username });
+
+            while (usernameExists) {
+                username = `${name}_${Math.random().toString(36).slice(-4)}`;
+                usernameExists = await userModel.findOne({ username });
+            }
+
+            const randomPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
+            const hashedPassword = await bcrypt.hash(randomPassword, 13);
+            user = await userModel.create({
+                username,
+                email,
+                password: hashedPassword
+            });
+        }
+
+        const jwtToken = jwt.sign(
+            {
+                id: user._id,
+                username: user.username
+            },
+            process.env.JWT_SECRET,
+            { expiresIn: "1d" }
+        );
+
+        res.cookie("token", jwtToken, cookieOptions);
+
+        return res.status(200).json({
+            message: "google login successful",
+            user: {
+                id: user._id,
+                username: user.username,
+                email: user.email
+            }
+        });
+
+    } catch (err) {
+        console.log("Google Auth Error:", err);
+        return res.status(500).json({
+            message: "google auth failed",
+            error: err.message
+        });
+    }
+};
+
 export default {
     registerUser,
     loginUser,
     logoutUser,
-    getCurrentUser
+    getCurrentUser,
+    googleAuth
 };

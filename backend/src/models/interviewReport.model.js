@@ -58,6 +58,12 @@ const technicalQuestionSchema = new mongoose.Schema({
     answer:{
         type:String,
         required:[true, 'answer is required']
+    },
+    userAnswer: String,
+    feedback: {
+        improvements: [String],
+        drawbacks: [String],
+        score: Number
     }
 },{
     _id:false
@@ -75,6 +81,12 @@ const behavioralQuestionSchema = new mongoose.Schema({
     answer:{
         type:String,
         required:[true,'answer is required']
+    },
+    userAnswer: String,
+    feedback: {
+        improvements: [String],
+        drawbacks: [String],
+        score: Number
     }
 },{
     _id:false
@@ -138,6 +150,11 @@ const interviewReportSchema = new mongoose.Schema({
     },
     title:{
         type:String
+    },
+    status: {
+        type: String,
+        enum: ['generated', 'in-progress', 'completed'],
+        default: 'generated'
     }
 },{
     timestamps:true 

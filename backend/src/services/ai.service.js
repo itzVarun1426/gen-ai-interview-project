@@ -6,9 +6,10 @@ const genai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
 });
 
+const GeminiModel = "gemini-2.5-flash-lite";
 
 const interviewReportSchema = z.object({
-  matchscore: z.number().min(0).max(100).int(),
+  matchScore: z.number().min(0).max(100).int(),
 
   technicalQuestions: z.array(
     z.object({
@@ -51,160 +52,68 @@ function fixArray(arr, type) {
 
   return arr
     .map((item, index) => {
+      if (item === null || item === undefined) return null;
 
-      //  remove null / undefined
-      if (!item) return null;
-
-      // 🔹 STRING CASE
-      if (typeof item === "string") {
-
-        //  TRY JSON PARSE FIRST (FIXED ORDER)
+      if (typeof item === "string" && item.trim().startsWith("{")) {
         try {
-          const parsedItem = JSON.parse(item);
-
-          if (type === "skill" && parsedItem.skill) {
-            return {
-              skill: parsedItem.skill,
-              severity: ["low", "medium", "high"].includes(parsedItem.severity)
-                ? parsedItem.severity
-                : "medium",
-            };
+          const parsed = JSON.parse(item);
+          if (typeof parsed === "object" && parsed !== null) {
+            item = parsed;
           }
-
-          item = parsedItem;
-
-        } catch {
-
-          //  HANDLE "skill:React" ONLY IF NOT JSON
-          if (type === "skill" && item.includes(":") && !item.includes("{")) {
-            const [key, value] = item.split(":");
-
-            if (key.toLowerCase().includes("skill")) {
-              return { skill: value.trim(), severity: "medium" };
-            }
-            if (key.toLowerCase().includes("severity")) {
-              return null;
-            }
-          }
-
-          //  QUESTION STRING → CONVERT TO OBJECT
-          if (type === "question") {
-            return {
-              question: item,
-              intention: "Assess understanding and problem-solving ability",
-              answer: "Explain the concept clearly, describe your approach step-by-step, include examples, and justify your reasoning."
-            };
-          }
-
-          if (type === "skill") {
-            return {
-              skill: item,
-              severity: "medium",
-            };
-          }
-
-          if (type === "plan") {
-            return {
-              day: index + 1,
-              focused_topic: item,
-              task: ["Revise topic", "Practice problems"],
-            };
-          }
-        }
+        } catch (e) { }
       }
 
-      //  NUMBER CASE
-      if (typeof item === "number") {
-        return {
-          day: item,
-          focused_topic: "General Preparation",
-          task: ["Revise concepts", "Practice problems"],
-        };
+      if (type === "question") {
+        let question = "Contextual question missing";
+        let intention = "N/A - Context Missing. The AI unfortunately skipped providing an interviewer intent.";
+        let answer = "N/A - Context Missing. The AI unfortunately skipped providing a suggested answer strategy for this question.";
+
+        if (typeof item === "string") {
+          question = item;
+        } else if (typeof item === "object") {
+          if (typeof item.question === "string" && item.question.trim()) question = item.question;
+          if (typeof item.intention === "string" && item.intention.trim()) intention = item.intention;
+          if (typeof item.answer === "string" && item.answer.trim()) answer = item.answer;
+        }
+        return { question, intention, answer };
       }
 
-      //  OBJECT CASE
-      if (typeof item === "object") {
+      if (type === "skill") {
+        let skill = "General Skill";
+        let severity = "medium";
 
-        //  CLEAN INVALID KEYS
-        const cleanItem = {};
-        for (let key in item) {
-          if (key !== "null" && item[key] !== null && item[key] !== undefined) {
-            cleanItem[key] = item[key];
+        if (typeof item === "string") {
+          skill = item.includes(":") ? item.split(":")[0].trim() : item;
+        } else if (typeof item === "object") {
+          if (typeof item.skill === "string" && item.skill.trim()) skill = item.skill;
+          if (["low", "medium", "high"].includes(item.severity)) severity = item.severity;
+        }
+        return { skill, severity };
+      }
+
+      if (type === "plan") {
+        let day = index + 1;
+        let focused_topic = "General Topic";
+        let task = ["Revise topic", "Practice questions"];
+
+        if (typeof item === "number") {
+          day = item;
+        } else if (typeof item === "string") {
+          focused_topic = item;
+        } else if (typeof item === "object") {
+          if (typeof item.day === "number") day = item.day;
+          else if (typeof item.day === "string" && !isNaN(parseInt(item.day))) day = parseInt(item.day);
+
+          if (typeof item.focused_topic === "string" && item.focused_topic.trim()) focused_topic = item.focused_topic;
+
+          if (Array.isArray(item.task) && item.task.length > 0) {
+            const stringTasks = item.task.filter(t => typeof t === "string");
+            if (stringTasks.length > 0) task = stringTasks;
           }
         }
 
-        //  QUESTION FIX
-        if (type === "question") {
-          return {
-            question:
-              typeof cleanItem.question === "string" && cleanItem.question.trim()
-                ? cleanItem.question
-                : "Explain a technical concept",
-
-            intention:
-              typeof cleanItem.intention === "string" && cleanItem.intention.trim()
-                ? cleanItem.intention
-                : "Assess understanding",
-
-            answer:
-              typeof cleanItem.answer === "string" && cleanItem.answer.trim()
-                ? cleanItem.answer
-                : "Explain the concept clearly, describe your approach, include examples, and justify your solution.",
-          };
-        }
-
-        //  SKILL FIX
-        if (type === "skill") {
-          return {
-            skill:
-              typeof cleanItem.skill === "string" && cleanItem.skill.trim()
-                ? cleanItem.skill
-                : "General Skill",
-
-            severity:
-              ["low", "medium", "high"].includes(cleanItem.severity)
-                ? cleanItem.severity
-                : "medium",
-          };
-        }
-
-        //  PLAN FIX
-        if (type === "plan") {
-          let topic = cleanItem.focused_topic;
-
-          // HANDLE STRINGIFIED JSON
-          if (typeof topic === "string" && topic.includes('"task"')) {
-            try {
-              const cleaned = topic.trim().startsWith("{") ? topic : `{${topic}}`;
-              const extracted = JSON.parse(cleaned);
-
-              return {
-                day: extracted.day || cleanItem.day || index + 1,
-                focused_topic: extracted.focused_topic || "General Topic",
-                task: Array.isArray(extracted.task)
-                  ? extracted.task
-                  : ["Revise topic", "Practice questions"],
-              };
-            } catch {}
-          }
-
-          return {
-            day:
-              typeof cleanItem.day === "number"
-                ? cleanItem.day
-                : index + 1,
-
-            focused_topic:
-              typeof cleanItem.focused_topic === "string" && cleanItem.focused_topic.trim()
-                ? cleanItem.focused_topic
-                : "General Topic",
-
-            task:
-              Array.isArray(cleanItem.task) && cleanItem.task.length
-                ? cleanItem.task
-                : ["Revise topic", "Practice questions"],
-          };
-        }
+        day = isNaN(day) ? index + 1 : Math.floor(day); // Required for Zod Int parsing
+        return { day, focused_topic, task };
       }
 
       return null;
@@ -218,72 +127,44 @@ async function generateInterviewReport({ resume, selfDescription, jobDescription
     const prompt = `
 You are a highly experienced technical interviewer and career coach.
 
-STRICT RULES (FOLLOW EXACTLY):
+STRICT INSTRUCTIONS:
+1. Return ONLY valid JSON structured precisely according to the Schema.
+2. "technicalQuestions" MUST contain 6 distinct technical question objects.
+3. "behavioralQuestions" MUST contain 6 distinct behavioral/situational question objects.
+4. "skillsGaps" and "preparationPlan" must be fully populated (max 7 days plan).
+5. Provide high quality, detailed paragraphs for all "answer" and "intention" fields.
 
-1. Return ONLY valid JSON (no explanation, no markdown)
-2. DO NOT return arrays of strings
-3. DO NOT skip any field
-4. EVERY question MUST be an object with:
-   - question
-   - intention
-   - answer
-5. The "answer" MUST be DETAILED (minimum 2-3 lines)
-6. DO NOT leave answer empty or generic
-7. DO NOT shorten output
-
-WRONG ❌:
-"technicalQuestions": ["question1", "question2"]
-
-WRONG ❌:
-{ "question": "...", "intention": "..." }
-
-CORRECT ✅:
+Below is the EXACT JSON format your response must follow. Do not deviate from this shape:
 {
-  "question": "...",
-  "intention": "...",
-  "answer": "Detailed explanation with approach, examples, and reasoning"
-}
-
-REQUIREMENTS:
-
-- EXACTLY 8 technical questions
-- EXACTLY 8 behavioral questions
-- Behavioral answers MUST follow STAR method:
-  Situation → Task → Action → Result
--title is a single liner short title for this report to be shown to user 
-
-FINAL OUTPUT FORMAT:
-
-{
-  "matchscore": number,
+  "matchScore": 85,
+  "title": "Software Developer Intern Evaluation",
   "technicalQuestions": [
     {
-      "question": string,
-      "intention": string,
-      "answer": string
+      "question": "How does Node.js handle async operations?",
+      "intention": "Assess understanding of the event loop.",
+      "answer": "Explain the call stack, web APIs, and callback queue."
     }
   ],
   "behavioralQuestions": [
     {
-      "question": string,
-      "intention": string,
-      "answer": string
+      "question": "Tell me about a time you optimized slow code.",
+      "intention": "Test practical optimization experience.",
+      "answer": "Candidate should share a STAR method story."
     }
   ],
   "skillsGaps": [
     {
-      "skill": string,
-      "severity": "low" | "medium" | "high"
+      "skill": "Docker",
+      "severity": "medium"
     }
   ],
   "preparationPlan": [
     {
-      "day": number,
-      "focused_topic": string,
-      "task": string[]
+      "day": 1,
+      "focused_topic": "Node Basics",
+      "task": ["Review Event Loop", "Build simple API"]
     }
-  ],
-  "title": string
+  ]
 }
 
 Candidate Resume:
@@ -297,17 +178,19 @@ ${jobDescription}
 `;
 
     const response = await genai.models.generateContent({
-      model: "gemini-2.5-flash-lite",
-      // model: "gemini-2.5-flash",
-      contents: prompt,
+      model: GeminiModel,
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
       config: {
         responseMimeType: "application/json",
-        responseSchema: zodToJsonSchema(interviewReportSchema),
+        maxOutputTokens: 8192,
       },
     });
+    console.log("AI RESPONSE:", response.text);
+
+    const responseText = response.text;
 
     let parsed = JSON.parse(
-      response.text.replace(/```json|```/g, "").trim()
+      responseText.replace(/```json|```/g, "").trim()
     );
 
 
@@ -323,20 +206,23 @@ ${jobDescription}
         parsed.preparationPlan = [];
       }
     }
-    // console.log(" DATA before fixing:", parsed);
 
- 
+
     parsed.technicalQuestions = fixArray(parsed.technicalQuestions, "question").slice(0, 10);
     parsed.behavioralQuestions = fixArray(parsed.behavioralQuestions, "question").slice(0, 10);
     parsed.skillsGaps = fixArray(parsed.skillsGaps, "skill");
     parsed.preparationPlan = fixArray(parsed.preparationPlan, "plan").slice(0, 7);
 
-
-    if (!parsed.matchscore || typeof parsed.matchscore !== "number") {
-      parsed.matchscore = 70;
+    // Provide fallback for matchScore if model misses it
+    if (!parsed.matchScore || typeof parsed.matchScore !== "number") {
+      // Fallback: check if the model used lowercase matchscore
+      if (parsed.matchscore && typeof parsed.matchscore === "number") {
+        parsed.matchScore = parsed.matchscore;
+        delete parsed.matchscore;
+      } else {
+        parsed.matchScore = 70;
+      }
     }
-
-    // console.log("FINAL CLEAN DATA:", parsed);
 
     const result = interviewReportSchema.safeParse(parsed);
 
@@ -344,6 +230,7 @@ ${jobDescription}
       console.error("ZOD ERROR:", result.error);
       return null;
     }
+
 
     return result.data;
 
@@ -353,4 +240,58 @@ ${jobDescription}
   }
 }
 
-export { generateInterviewReport };
+export { generateInterviewReport, evaluateAnswer };
+
+async function evaluateAnswer({ question, intention, modelAnswer, userAnswer, audioBase64, mimeType }) {
+  try {
+    const prompt = `
+You are an expert technical interviewer. Evaluate the candidate's answer to the following question.
+
+Question: ${question}
+Interviewer Intention: ${intention}
+Ideal Model Answer: ${modelAnswer}
+
+Candidate's Provided Answer (Text): ${userAnswer || "No text provided, please transcribe from audio if available."}
+
+STRICT INSTRUCTIONS:
+1. If audio is provided, prioritize transcribing it accurately.
+2. Evaluate the answer based on technical accuracy, clarity, and the interviewer's intent.
+3. Return ONLY valid JSON in this format:
+{
+  "userAnswer": "The full transcription of what the user said (or the text provided)",
+  "score": 0-100,
+  "improvements": ["Specific area to improve", "Another point"],
+  "drawbacks": ["What was missing or incorrect"]
+}
+`;
+
+    const parts = [{ text: prompt }];
+    if (audioBase64 && mimeType) {
+      parts.push({
+        inlineData: {
+          mimeType: mimeType,
+          data: audioBase64
+        }
+      });
+    }
+
+    const response = await genai.models.generateContent({
+      model: GeminiModel,
+      contents: [{ role: "user", parts }],
+      config: {
+        responseMimeType: "application/json",
+      },
+    });
+
+    console.log("EVALUATION AI RESPONSE:", response.text);
+    return JSON.parse(response.text.replace(/```json|```/g, "").trim());
+  } catch (error) {
+    console.error("Evaluation AI Error:", error);
+    return {
+      userAnswer: userAnswer || "Error transcribing answer",
+      score: 50,
+      improvements: ["Check your internet connection", "Ensure mic quality is good"],
+      drawbacks: ["AI evaluation failed"]
+    };
+  }
+}
