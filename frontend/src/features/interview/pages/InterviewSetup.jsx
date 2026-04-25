@@ -76,6 +76,13 @@ const InterviewSetup = () => {
         update();
     };
 
+    // Ensure video stream connects after permission state updates the DOM
+    useEffect(() => {
+        if (permission && stream && videoRef.current) {
+            videoRef.current.srcObject = stream;
+        }
+    }, [permission, stream]);
+
     useEffect(() => {
         return () => {
             if (stream) {
@@ -154,7 +161,7 @@ const InterviewSetup = () => {
                             </div>
                         </div>
                         <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm flex items-start gap-4">
-                            <div className="w-10 h-10 rounded-xl bg-blue-100/50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                            <div className="w-10 h-10 rounded-xl bg-emerald-100/50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
                                 <span className="material-symbols-outlined">network_check</span>
                             </div>
                             <div>

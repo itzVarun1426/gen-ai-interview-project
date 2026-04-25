@@ -271,9 +271,9 @@ const Interview = () => {
                 </div>
             </header>
 
-            <main className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-12 gap-0 relative">
+            <main className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-12 gap-0 relative min-h-0">
                 {/* Left Panel: Camera & Question */}
-                <div className="lg:col-span-8 flex flex-col relative h-full">
+                <div className="lg:col-span-8 flex flex-col relative h-full min-h-0">
                     {/* Background Visual (Graphic EQ) */}
                     <div className="absolute inset-0 z-0 flex items-center justify-center opacity-10 pointer-events-none">
                          <div className="flex gap-2 h-64 items-end">
@@ -288,13 +288,13 @@ const Interview = () => {
                          </div>
                     </div>
 
-                    <div className="flex-1 flex flex-col items-center justify-center p-8 z-10">
+                    <div className="flex-1 flex flex-col items-center justify-center p-8 z-10 min-h-0">
                         {/* Question Card */}
                         <motion.div 
                             key={currentQ?.question}
                             initial={{ y: 20, opacity: 0 }}
                             animate={{ y: 0, opacity: 1 }}
-                            className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm p-8 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-soft max-w-2xl w-full mb-12"
+                            className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm p-8 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-soft max-w-2xl w-full mb-12 overflow-y-auto"
                         >
                             <div className="flex items-center gap-2 mb-4">
                                 <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Interviewer</span>
@@ -309,7 +309,7 @@ const Interview = () => {
                         <motion.div 
                             drag
                             dragConstraints={{ left: -400, right: 400, top: -300, bottom: 300 }}
-                            className="w-48 aspect-[3/4] bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border-4 border-white dark:border-slate-800 cursor-move fixed bottom-24 right-8 lg:right-auto lg:left-[calc(66.6% - 15rem)] z-40"
+                            className="w-48 aspect-[3/4] bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border-4 border-white dark:border-slate-800 cursor-move absolute bottom-8 right-8 z-40"
                         >
                             <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-cover scale-x-[-1]" />
                             <div className="absolute bottom-2 left-2 flex items-center gap-1.5 px-2 py-1 bg-black/60 rounded-lg backdrop-blur-md">
@@ -320,7 +320,7 @@ const Interview = () => {
                     </div>
 
                     {/* Controls Footer */}
-                    <div className="h-24 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 flex items-center justify-center gap-6 px-6 z-50">
+                    <div className="h-24 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 flex items-center justify-center gap-6 px-6 z-50 shrink-0">
                         <motion.button 
                             disabled={isProcessing}
                             whileHover={{ scale: 1.05 }}
@@ -354,7 +354,7 @@ const Interview = () => {
                 </div>
 
                 {/* Right Panel: Transcription Sidebar */}
-                <div className="lg:col-span-4 bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 flex flex-col h-full shadow-[inset_0_0_20px_rgba(0,0,0,0.02)]">
+                <div className="lg:col-span-4 bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 flex flex-col h-full shadow-[inset_0_0_20px_rgba(0,0,0,0.02)] min-h-0">
                     <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                         <h2 className="font-bold flex items-center gap-2 text-sm tracking-tight">
                             <span className="material-symbols-outlined text-primary text-[20px]">closed_caption</span>

@@ -15,7 +15,7 @@ const Evaluation = () => {
 
   useEffect(() => {
     const fetchReport = async () => {
-      if (report && (report._id === interviewId || report.id === interviewId)) return;
+      // Always fetch to ensure we get the latest user answers after an interview
       if (typeof setInterviewLoading === 'function') setInterviewLoading(true);
 
       try {
@@ -31,7 +31,8 @@ const Evaluation = () => {
     };
 
     if (interviewId) fetchReport();
-  }, [interviewId, report, setReport, setInterviewLoading]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [interviewId]);
 
   // Clean up if a print is pending
   useEffect(() => {
