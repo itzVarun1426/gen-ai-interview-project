@@ -43,7 +43,7 @@ export async function googleLogin(token) {
 
 export async function logout() {
     try {
-        const response = await api.get("/api/auth/logout");
+        const response = await api.post("/api/auth/logout");
         return response.data;
     } catch (err) {
         console.error("Logout error:", err.message);

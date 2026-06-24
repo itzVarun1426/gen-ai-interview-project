@@ -3,10 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router';
 import { interviewContext } from '../interview.context';
 import ThemeToggle from '../../../components/ThemeToggle';
+import { useAuth } from '../../auth/hooks/useAuth';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
+  const { handleLogout } = useAuth();
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const {
     selfDescription, setSelfDescription,
@@ -110,9 +113,36 @@ const Dashboard = () => {
         </div>
         <div className="flex items-center gap-4">
           <ThemeToggle />
-          <button className="text-slate-500 dark:text-slate-400 hover:text-primary transition-colors cursor-pointer flex items-center justify-center">
-            <span className="material-symbols-outlined">settings</span>
-          </button>
+          <div className="relative">
+            <button 
+              onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+              className={`text-slate-500 dark:text-slate-400 hover:text-primary transition-colors cursor-pointer flex items-center justify-center ${isSettingsOpen ? 'text-primary' : ''}`}
+            >
+              <span className="material-symbols-outlined">settings</span>
+            </button>
+            <AnimatePresence>
+              {isSettingsOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
+                  className="absolute right-0 mt-3 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-50 overflow-hidden"
+                >
+                  <button 
+                    onClick={async () => {
+                      await handleLogout();
+                      navigate('/login');
+                    }}
+                    className="w-full text-left px-4 py-3 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-3 font-medium"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">logout</span>
+                    Logout
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </motion.header>
 
