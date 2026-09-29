@@ -56,8 +56,34 @@ export async function getMe() {
         const response = await api.get("/api/auth/get-me");
         return response.data;
     } catch (err) {
-        // We don't necessarily want to throw here during initial load, 
-        // just return null if no session.
+        // Return null silently for unauthenticated / 401 initial session check
         return null;
+    }
+}
+
+export async function updateProfileApi(profileData) {
+    try {
+        const response = await api.put("/api/auth/profile", profileData);
+        return response.data;
+    } catch (err) {
+        console.error("Update profile error:", err.response?.data || err.message);
+        throw err.response?.data || new Error("Failed to update profile");
+    }
+}
+
+export async function uploadAvatarApi(file) {
+    try {
+        const formData = new FormData();
+        formData.append("avatar", file);
+
+        const response = await api.post("/api/auth/upload-avatar", formData, {
+            headers: {
+                "Content-Type": "multipart/form-data"
+            }
+        });
+        return response.data;
+    } catch (err) {
+        console.error("Upload avatar error:", err.response?.data || err.message);
+        throw err.response?.data || new Error("Failed to upload avatar");
     }
 }

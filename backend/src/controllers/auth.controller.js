@@ -3,6 +3,7 @@ import blacklistedTokenModel from "../models/blacklist.model.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { OAuth2Client } from "google-auth-library";
+import { uploadToS3OrLocal } from "../services/s3.service.js";
 
 const client = new OAuth2Client();
 
@@ -51,11 +52,15 @@ const registerUser = async (req, res) => {
             user: {
                 id: newUser._id,
                 username: newUser.username,
-                email: newUser.email
+                email: newUser.email,
+                fullName: newUser.fullName,
+                avatar: newUser.avatar,
+                bio: newUser.bio,
+                targetRole: newUser.targetRole,
+                experienceLevel: newUser.experienceLevel
             }
         });
     } catch (error) {
-        console.log(error);
         return res.status(500).json({
             message: "error creating user",
             error: error.message
@@ -102,12 +107,16 @@ const loginUser = async (req, res) => {
             user: {
                 id: user._id,
                 username: user.username,
-                email: user.email
+                email: user.email,
+                fullName: user.fullName,
+                avatar: user.avatar,
+                bio: user.bio,
+                targetRole: user.targetRole,
+                experienceLevel: user.experienceLevel
             }
         });
 
     } catch (err) {
-        console.log(err);
         return res.status(500).json({
             message: "login failed",
             error: err.message
@@ -135,7 +144,6 @@ const logoutUser = async (req, res) => {
         });
 
     } catch (err) {
-        console.log(err);
         return res.status(500).json({
             message: "error logging out user",
             error: err.message
@@ -148,7 +156,11 @@ const logoutUser = async (req, res) => {
  */
 const getCurrentUser = async (req, res) => {
     try {
-        const user = await userModel.findById(req.decoded.id);
+        const user = await userModel.findById(req.decoded.id).select("-password");
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
 
         return res.status(200).json({
             message: "user found",
@@ -156,9 +168,85 @@ const getCurrentUser = async (req, res) => {
         });
 
     } catch (err) {
-        console.log(err);
         return res.status(500).json({
             message: "error getting user",
+            error: err.message
+        });
+    }
+};
+
+/**
+ * Update user profile information
+ */
+const updateProfile = async (req, res) => {
+    try {
+        const userId = req.decoded.id;
+        const { fullName, username, bio, targetRole, experienceLevel, avatar } = req.body;
+
+        const existingUser = await userModel.findById(userId);
+        if (!existingUser) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        if (username && username !== existingUser.username) {
+            const usernameTaken = await userModel.findOne({ username, _id: { $ne: userId } });
+            if (usernameTaken) {
+                return res.status(400).json({ message: "Username is already taken" });
+            }
+        }
+
+        const updatedUser = await userModel.findByIdAndUpdate(
+            userId,
+            {
+                $set: {
+                    ...(fullName !== undefined && { fullName }),
+                    ...(username !== undefined && { username }),
+                    ...(bio !== undefined && { bio }),
+                    ...(targetRole !== undefined && { targetRole }),
+                    ...(experienceLevel !== undefined && { experienceLevel }),
+                    ...(avatar !== undefined && { avatar })
+                }
+            },
+            { new: true }
+        ).select("-password");
+
+        return res.status(200).json({
+            message: "Profile updated successfully",
+            user: updatedUser
+        });
+    } catch (err) {
+        return res.status(500).json({
+            message: "Failed to update profile",
+            error: err.message
+        });
+    }
+};
+
+/**
+ * Upload profile avatar image (AWS S3 or Local storage)
+ */
+const uploadAvatar = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: "Please select an image file to upload" });
+        }
+
+        const avatarUrl = await uploadToS3OrLocal(req.file);
+
+        const updatedUser = await userModel.findByIdAndUpdate(
+            req.decoded.id,
+            { avatar: avatarUrl },
+            { new: true }
+        ).select("-password");
+
+        return res.status(200).json({
+            message: "Avatar uploaded successfully",
+            avatarUrl,
+            user: updatedUser
+        });
+    } catch (err) {
+        return res.status(500).json({
+            message: "Failed to upload avatar",
             error: err.message
         });
     }
@@ -180,7 +268,7 @@ const googleAuth = async (req, res) => {
         });
 
         const payload = ticket.getPayload();
-        const { email, name } = payload;
+        const { email, name, picture } = payload;
 
         let user = await userModel.findOne({ email });
 
@@ -198,6 +286,8 @@ const googleAuth = async (req, res) => {
             user = await userModel.create({
                 username,
                 email,
+                fullName: name || "",
+                avatar: picture || "",
                 password: hashedPassword
             });
         }
@@ -218,12 +308,16 @@ const googleAuth = async (req, res) => {
             user: {
                 id: user._id,
                 username: user.username,
-                email: user.email
+                email: user.email,
+                fullName: user.fullName,
+                avatar: user.avatar,
+                bio: user.bio,
+                targetRole: user.targetRole,
+                experienceLevel: user.experienceLevel
             }
         });
 
     } catch (err) {
-        console.log("Google Auth Error:", err);
         return res.status(500).json({
             message: "google auth failed",
             error: err.message
@@ -236,5 +330,7 @@ export default {
     loginUser,
     logoutUser,
     getCurrentUser,
+    updateProfile,
+    uploadAvatar,
     googleAuth
 };

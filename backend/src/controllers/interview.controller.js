@@ -6,14 +6,6 @@ import interviewReportModel from '../models/interviewReport.model.js';
 
 async function generateInterviewReportController(req, res) {
     try {
-        console.log("INTERNAL_DEBUG: Complete req.body:", req.body);
-        console.log("INTERNAL_DEBUG: req.file metadata:", req.file ? {
-            fieldname: req.file.fieldname,
-            originalname: req.file.originalname,
-            mimetype: req.file.mimetype,
-            size: req.file.size
-        } : "NO_FILE");
-
         const { selfDescription, jobDescription } = req.body;
         let resumeText = "";
 
@@ -23,7 +15,6 @@ async function generateInterviewReportController(req, res) {
                 const pdfParser = new pdf.PDFParse({ data: req.file.buffer });
                 const textResult = await pdfParser.getText();
                 resumeText = textResult.text || "";
-                console.log("Resume parsed successfully. Length:", resumeText.length);
             } catch (pdfError) {
                 console.error("PDF Parsing Error:", pdfError);
                 return res.status(400).json({ error: 'Failed to parse PDF resume' });
@@ -32,11 +23,9 @@ async function generateInterviewReportController(req, res) {
 
         // Detailed validation
         if (!jobDescription) {
-            console.log("INTERNAL_DEBUG: Missing jobDescription");
             return res.status(400).json({ error: 'Job Description is missing.' });
         }
         if (!selfDescription && !resumeText) {
-            console.log("INTERNAL_DEBUG: Missing profile context (no bio and no resume text)");
             return res.status(400).json({ error: 'Please provide either a Bio or a Resume.' });
         }
 

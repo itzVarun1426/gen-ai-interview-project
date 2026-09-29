@@ -15,8 +15,28 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-
-})
+    fullName: {
+        type: String,
+        default: ""
+    },
+    avatar: {
+        type: String,
+        default: ""
+    },
+    bio: {
+        type: String,
+        default: ""
+    },
+    targetRole: {
+        type: String,
+        default: ""
+    },
+    experienceLevel: {
+        type: String,
+        enum: ["Junior", "Mid-Level", "Senior", "Lead / Principal", "Executive", ""],
+        default: ""
+    }
+}, { timestamps: true });
 
 const User = mongoose.model("User", userSchema);
 

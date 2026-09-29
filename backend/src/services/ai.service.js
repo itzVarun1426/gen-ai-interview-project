@@ -3,6 +3,7 @@ import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 
 const genai = new GoogleGenAI({
+  
   apiKey: process.env.GEMINI_API_KEY,
 });
 
@@ -185,7 +186,7 @@ ${jobDescription}
         maxOutputTokens: 8192,
       },
     });
-    console.log("AI RESPONSE:", response.text);
+    // AI response received
 
     const responseText = response.text;
 
@@ -283,7 +284,7 @@ STRICT INSTRUCTIONS:
       },
     });
 
-    console.log("EVALUATION AI RESPONSE:", response.text);
+    // EVALUATION AI response received
     return JSON.parse(response.text.replace(/```json|```/g, "").trim());
   } catch (error) {
     console.error("Evaluation AI Error:", error);
